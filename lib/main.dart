@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'app.dart';
+import 'models/alumni_model.dart';
+import 'models/settings_model.dart';
+import 'services/hive_datasource.dart';
+import 'services/preferences_service.dart';
 
-void main() {
-  runApp(const StarterApp());
-}
-
-class StarterApp extends StatelessWidget {
-  const StarterApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      home: Scaffold(body: Center(child: Text('Alumni app setup'))),
-    );
-  }
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final preferences = PreferencesService();
+  await preferences.initialise();
+  final dataSource = await HiveDataSource.createAsync();
+  runApp(
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => AlumniModel(dataSource)),
+        ChangeNotifierProvider(create: (_) => SettingsModel(preferences)),
+      ],
+      child: const AlumniApp(),
+    ),
+  );
 }
