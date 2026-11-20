@@ -1,0 +1,203 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import '../models/feed_page.dart';
+import '../models/feed_post.dart';
+import '../models/user_profile.dart';
+import 'alumni_datasource.dart';
+
+class ApiDataSource implements AlumniDataSource {
+  ApiDataSource(
+    String baseUrl, {
+    http.Client? client,
+    this._allowInsecureLocalHttp = false,
+  }) : _baseUrl = baseUrl.trim().replaceFirst(RegExp(r'/+$'), ''),
+       _client = client ?? http.Client();
+
+  final String _baseUrl;
+  final http.Client _client;
+  final bool _allowInsecureLocalHttp;
+  String? _token;
+  int _sessionVersion = 0;
+
+  String _requireToken() {
+    return _token ??
+        (throw DataSourceException(
+          'Please sign in again.',
+          sessionExpired: true,
+        ));
+  }
+
+  Uri _endpoint(String path) {
+    final base = Uri.tryParse(_baseUrl);
+    if (base == null ||
+        base.host.isEmpty ||
+        base.userInfo.isNotEmpty ||
+        base.hasQuery ||
+        base.hasFragment) {
+      throw DataSourceException('Set a valid API base URL.');
+    }
+    final localHttp =
+        _allowInsecureLocalHttp &&
+        base.scheme == 'http' &&
+        _isLocalHost(base.host);
+    if (base.scheme != 'https' && !localHttp) {
+      throw DataSourceException('The API address must use HTTPS.');
+    }
+    return Uri.parse('$_baseUrl$path');
+  }
+
+  static bool _isLocalHost(String host) {
+    if (host == 'localhost' || host == '::1') return true;
+    final parts = host.split('.').map(int.tryParse).toList();
+    if (parts.any((part) => part == null || part < 0 || part > 255)) {
+      return false;
+    }
+    return switch (parts) {
+      [10, _, _, _] || [127, _, _, _] || [192, 168, _, _] => true,
+      [172, final second?, _, _] => second >= 16 && second <= 31,
+      _ => false,
+    };
+  }
+
+  Future<T> _request<T>(
+    String method,
+    String path,
+    T Function(Map<String, dynamic>) read, {
+    Map<String, Object?>? body,
+    String? bearer,
+  }) async {
+    final request = http.Request(method, _endpoint(path))
+      ..followRedirects = false
+      ..headers['Accept'] = 'application/json';
+    if (bearer != null) request.headers['Authorization'] = 'Bearer $bearer';
+    if (body != null) {
+      request.headers['Content-Type'] = 'application/json';
+      request.body = jsonEncode(body);
+    }
+
+    try {
+      final response = await _client
+          .send(request)
+          .then(http.Response.fromStream)
+          .timeout(const Duration(seconds: 10));
+      switch (response.statusCode) {
+        case 401:
+          if (bearer == null) {
+            throw DataSourceException('Check your username and password.');
+          }
+          if (_token == bearer) _token = null;
+          throw DataSourceException(
+            'Your session has expired.',
+            sessionExpired: true,
+          );
+        case 403:
+          throw DataSourceException('You do not have access to this item.');
+        case 404:
+          throw DataSourceException('This item is no longer available.');
+        case 422:
+          throw DataSourceException(
+            'Check the submitted information and try again.',
+          );
+        case < 200 || >= 300:
+          throw DataSourceException(
+            'The server could not complete the request. Try again.',
+          );
+      }
+      final payload = response.bodyBytes.isEmpty
+          ? <String, dynamic>{}
+          : jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return read(payload);
+    } on TimeoutException {
+      throw DataSourceException('The request took too long. Please try again.');
+    } on http.ClientException {
+      throw DataSourceException(
+        'Unable to connect. Check your connection and try again.',
+      );
+    } on FormatException {
+      throw DataSourceException('The server returned an unreadable response.');
+    } on TypeError {
+      throw DataSourceException('The server returned an unreadable response.');
+    }
+  }
+
+  static UserProfile _profile(Map<String, dynamic> response) =>
+      UserProfile.fromMap(response['data'] as Map<String, dynamic>);
+
+  @override
+  Future<UserProfile> signIn(String email, String password) async {
+    final version = ++_sessionVersion;
+    _token = null;
+    final signedIn = await _request('POST', '/login', (payload) {
+      final token = payload['token'] as String;
+      if (token.trim().isEmpty) throw const FormatException();
+      return (token: token, profile: _profile(payload));
+    }, body: {'login': email.trim(), 'password': password});
+    if (version != _sessionVersion) {
+      throw DataSourceException('Please sign in again.', sessionExpired: true);
+    }
+    _token = signedIn.token;
+    return signedIn.profile;
+  }
+
+  @override
+  Future<void> signOut() async {
+    ++_sessionVersion;
+    final previous = _token;
+    _token = null;
+    if (previous == null) return;
+    try {
+      await _request<void>('POST', '/logout', (_) {}, bearer: previous);
+    } on DataSourceException catch (error) {
+      if (!error.sessionExpired) rethrow;
+    }
+  }
+
+  @override
+  Future<UserProfile> readProfile() async =>
+      _request('GET', '/me', _profile, bearer: _requireToken());
+
+  @override
+  Future<UserProfile> updateProfile(String name, String bio) async {
+    final error =
+        UserProfile.validateName(name) ?? UserProfile.validateBio(bio);
+    if (error != null) throw DataSourceException(error);
+    return _request(
+      'PATCH',
+      '/me',
+      _profile,
+      body: {'name': name.trim(), 'bio': bio},
+      bearer: _requireToken(),
+    );
+  }
+
+  @override
+  Future<FeedPage> readFeed(int page) async => _request(
+    'GET',
+    '/feed?page=$page',
+    (result) => FeedPage(
+      posts: (result['data'] as List)
+          .map((item) => FeedPost.fromMap(item as Map<String, dynamic>))
+          .toList(),
+      nextPage: result['next_page'] as int?,
+    ),
+    bearer: _requireToken(),
+  );
+
+  @override
+  Future<FeedPost> readPost(int id) async => _request(
+    'GET',
+    '/feed/$id',
+    (result) => FeedPost.fromMap(result['data'] as Map<String, dynamic>),
+    bearer: _requireToken(),
+  );
+
+  @override
+  void dispose() {
+    ++_sessionVersion;
+    _token = null;
+    _client.close();
+  }
+}
