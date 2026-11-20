@@ -33,6 +33,26 @@ migrate_working_dir/
 /build/
 /coverage/
 
+# Local database contents and runtime locks (not pubspec.lock).
+*.hive
+*.hivec
+*.hive.lock
+/alumni_profiles.lock
+/alumni_posts.lock
+/alumni_preferences.lock
+
+# Local assessment-server state. Keep intentional sample fixtures tracked.
+/tool/runtime/
+
+# Local credentials and packaged outputs.
+.env
+.env.*
+!.env.example
+*.apk
+*.aab
+*.ipa
+/dist/
+
 # Symbolication related
 app.*.symbols
 
