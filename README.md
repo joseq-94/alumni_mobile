@@ -1,40 +1,49 @@
 # Alumni Mobile
 
-A simple Flutter app with Home, a read-only Feed, My Profile and Settings. Users can sign in, read posts, edit their name and biography, and change the theme and text size.
+A simple Flutter app with Home, a read-only Feed, My Profile and Settings. It connects to the Alumni Platform Laravel API for login, profiles and public posts. Theme and text size preferences stay on the device in Hive.
 
-The app uses fictional data. It does not connect to the live Alumni platform or its database as the real platfrom is yet to be deployed.
+## Run with Laravel
 
-## Run the app
+In the ALUMNI-PLATFORM project, on the mobile_app branch:
 
-Use Flutter 3.44.9 / Dart 3.12.2 and an Android device or emulator.
+```powershell
+composer install
+php artisan migrate
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+Use an existing platform account with a verified email address. Sign in with its email and password, not the demo alias `admin`.
+
+From the Flutter project, with an Android phone or emulator connected (replace DEVICE_ID using `adb devices`):
 
 ```powershell
 flutter pub get
-flutter run
+adb -s DEVICE_ID reverse tcp:8000 tcp:8000
+flutter run -d DEVICE_ID --dart-define=ALUMNI_ALLOW_LOCAL_HTTP=true
 ```
 
-This starts Hive mode. Profiles, posts and device preferences are stored locally.
+API mode is the default, using `http://127.0.0.1:8000/api/mobile`. Forwarding makes that address reach the computer from the device. Local HTTP requires the flag above and a debug build. For another server, set `--dart-define=ALUMNI_API_BASE_URL=https://your-server/api/mobile`.
 
-Demo accounts: `admin` or `sam@example.com`. Both use `Password1`.
+The app uses the six Laravel login, logout, profile and feed endpoints. Login tokens stay in memory; sign in again after restarting the app or after the 30-minute token expiry. The server validates changes to name and bio. API data requires a connection; Hive does not act as an offline feed cache.
 
-## Run with the local API
+## Local demo options
 
-Start the server in a separate terminal from the project folder:
+For the original Hive demo without a server:
 
 ```powershell
-dart run tool/assessment_server.dart
+flutter run --dart-define=ALUMNI_USE_API=false
 ```
 
-For a USB-connected Android phone, enable USB debugging, authorise the computer, and replace DEVICE_ID with the ID from `adb devices`:
+Demo accounts: `admin` or `sam@example.com`, password `Password1`.
+
+The separate Dart assessment server is also available. Start `dart run tool/assessment_server.dart`, forward port 8080, and set `--dart-define=ALUMNI_API_BASE_URL=http://127.0.0.1:8080/api/mobile --dart-define=ALUMNI_ALLOW_LOCAL_HTTP=true`. Use `sam@example.com` and `Password1` in its email sign-in form. See [assessment server setup](tool/README.md).
+
+## Checks
 
 ```powershell
-adb -s DEVICE_ID reverse tcp:8080 tcp:8080
-flutter run -d DEVICE_ID --dart-define=ALUMNI_USE_API=true --dart-define=ALUMNI_API_BASE_URL=http://127.0.0.1:8080/api/mobile --dart-define=ALUMNI_ALLOW_LOCAL_HTTP=true
+flutter analyze
+flutter test
 ```
-
-In API mode, the separate Dart server handles login, profiles and posts. It saves fictional records in `tool/runtime/assessment.json`; device preferences still use Hive. Restarting the server requires signing in again.
-
-See [API setup](tool/README.md) for emulator, Wi-Fi and web instructions. Local HTTP is enabled only for the debug demonstration.
 
 ## Code layout
 

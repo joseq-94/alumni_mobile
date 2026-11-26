@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/alumni_model.dart';
+import '../services/api_datasource.dart';
 import 'widgets/section_card.dart';
 import 'widgets/status_message.dart';
 
@@ -12,8 +13,18 @@ class LoginPage extends StatefulWidget {
 
 class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController(text: 'admin');
-  final _password = TextEditingController(text: 'Password1');
+  late final bool _usesApi;
+  late final TextEditingController _email;
+  late final TextEditingController _password;
+
+  @override
+  void initState() {
+    super.initState();
+    _usesApi = context.read<AlumniModel>().dataSource is ApiDataSource;
+    _email = TextEditingController(text: _usesApi ? '' : 'admin');
+    _password = TextEditingController(text: _usesApi ? '' : 'Password1');
+  }
+
   void _signIn() {
     if (!_formKey.currentState!.validate()) return;
     Provider.of<AlumniModel>(
@@ -71,13 +82,27 @@ class _LoginPageState extends State<LoginPage> {
                                 controller: _email,
                                 enabled: !model.signingIn,
                                 keyboardType: TextInputType.emailAddress,
-                                decoration: const InputDecoration(
-                                  labelText: 'Username or email',
+                                autocorrect: false,
+                                decoration: InputDecoration(
+                                  labelText: _usesApi
+                                      ? 'Email'
+                                      : 'Username or email',
                                 ),
-                                validator: (value) =>
-                                    value == null || value.trim().isEmpty
-                                    ? 'Enter your username or email.'
-                                    : null,
+                                validator: (value) {
+                                  final email = value?.trim() ?? '';
+                                  if (email.isEmpty) {
+                                    return _usesApi
+                                        ? 'Enter your email.'
+                                        : 'Enter your username or email.';
+                                  }
+                                  if (_usesApi &&
+                                      !RegExp(
+                                        r'^[^\s@]+@[^\s@]+\.[^\s@]+$',
+                                      ).hasMatch(email)) {
+                                    return 'Enter a valid email address.';
+                                  }
+                                  return null;
+                                },
                               ),
                               const SizedBox(height: 16),
                               TextFormField(
@@ -105,8 +130,10 @@ class _LoginPageState extends State<LoginPage> {
                             ],
                           ),
                         ),
-                        const Text(
-                          'Prototype demo accounts\nadmin or sam@example.com\nPassword: Password1',
+                        Text(
+                          _usesApi
+                              ? 'Use your Alumni Platform email and password.\nVerify your email on the website before signing in.'
+                              : 'Prototype demo accounts\nadmin or sam@example.com\nPassword: Password1',
                           textAlign: TextAlign.center,
                         ),
                       ],

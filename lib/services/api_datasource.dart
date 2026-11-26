@@ -86,7 +86,7 @@ class ApiDataSource implements AlumniDataSource {
       switch (response.statusCode) {
         case 401:
           if (bearer == null) {
-            throw DataSourceException('Check your username and password.');
+            throw DataSourceException('Check your email and password.');
           }
           if (_token == bearer) _token = null;
           throw DataSourceException(
@@ -94,12 +94,18 @@ class ApiDataSource implements AlumniDataSource {
             sessionExpired: true,
           );
         case 403:
-          throw DataSourceException('You do not have access to this item.');
+          throw DataSourceException(
+            bearer == null
+                ? 'Verify your email on the website before signing in.'
+                : 'You do not have access. Check your email verification on the website.',
+          );
         case 404:
           throw DataSourceException('This item is no longer available.');
         case 422:
+          throw DataSourceException(_validationMessage(response));
+        case 429:
           throw DataSourceException(
-            'Check the submitted information and try again.',
+            'Too many attempts. Wait a minute and try again.',
           );
         case < 200 || >= 300:
           throw DataSourceException(
@@ -121,6 +127,25 @@ class ApiDataSource implements AlumniDataSource {
     } on TypeError {
       throw DataSourceException('The server returned an unreadable response.');
     }
+  }
+
+  static String _validationMessage(http.Response response) {
+    // Laravel returns field errors as lists under 'errors'.
+    try {
+      final payload = jsonDecode(utf8.decode(response.bodyBytes));
+      if (payload is Map && payload['errors'] is Map) {
+        for (final messages in (payload['errors'] as Map).values) {
+          if (messages is List &&
+              messages.isNotEmpty &&
+              messages.first is String) {
+            return messages.first as String;
+          }
+        }
+      }
+    } on FormatException {
+      // Use a readable fallback if the response is not JSON.
+    }
+    return 'Check the submitted information and try again.';
   }
 
   static UserProfile _profile(Map<String, dynamic> response) =>

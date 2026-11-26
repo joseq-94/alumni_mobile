@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Connect USB phone to Laravel",
+      "type": "process",
+      "command": "adb",
+      "windows": {
+        "command": "${env:LOCALAPPDATA}/Android/sdk/platform-tools/adb.exe"
+      },
+      "args": ["-d", "reverse", "tcp:8000", "tcp:8000"],
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}

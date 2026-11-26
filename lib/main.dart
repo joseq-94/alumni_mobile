@@ -12,10 +12,13 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final preferences = PreferencesService();
   await preferences.initialise();
-  const useApi = bool.fromEnvironment('ALUMNI_USE_API');
+  const useApi = bool.fromEnvironment('ALUMNI_USE_API', defaultValue: true);
   final dataSource = useApi
       ? ApiDataSource(
-          const String.fromEnvironment('ALUMNI_API_BASE_URL'),
+          const String.fromEnvironment(
+            'ALUMNI_API_BASE_URL',
+            defaultValue: 'http://127.0.0.1:8000/api/mobile',
+          ),
           allowInsecureLocalHttp:
               kDebugMode &&
               const bool.fromEnvironment('ALUMNI_ALLOW_LOCAL_HTTP'),

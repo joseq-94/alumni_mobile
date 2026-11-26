@@ -1,0 +1,18 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter - local Laravel API",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "debug",
+      "preLaunchTask": "Connect USB phone to Laravel",
+      "toolArgs": [
+        "--dart-define=ALUMNI_USE_API=true",
+        "--dart-define=ALUMNI_API_BASE_URL=http://127.0.0.1:8000/api/mobile",
+        "--dart-define=ALUMNI_ALLOW_LOCAL_HTTP=true"
+      ]
+    }
+  ]
+}
