@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/user_profile.dart';
 import '../../theme/app_theme.dart';
 
+// Show profile details and use the first letter when a picture is missing or fails.
 class ProfileHeader extends StatelessWidget {
   final UserProfile profile;
   const ProfileHeader({super.key, required this.profile});

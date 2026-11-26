@@ -5,6 +5,7 @@ import '../services/api_datasource.dart';
 import 'widgets/section_card.dart';
 import 'widgets/status_message.dart';
 
+// Collect credentials and ask AlumniModel to sign in; Laravel checks API passwords.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override
@@ -20,6 +21,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
+    // Real API login starts blank; only local demo mode prefills sample credentials.
     _usesApi = context.read<AlumniModel>().dataSource is ApiDataSource;
     _email = TextEditingController(text: _usesApi ? '' : 'admin');
     _password = TextEditingController(text: _usesApi ? '' : 'Password1');

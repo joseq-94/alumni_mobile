@@ -1,3 +1,4 @@
+// One user profile, plus the name and bio rules shared by the form and data sources.
 class UserProfile {
   final int id;
   final String name;

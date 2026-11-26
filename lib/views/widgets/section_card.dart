@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// Reusable card layout so each screen does not repeat its heading and spacing.
 class SectionCard extends StatelessWidget {
   final String title;
   final Widget child;

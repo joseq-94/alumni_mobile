@@ -6,6 +6,7 @@ import 'views/login_page.dart';
 import 'views/app_shell.dart';
 import 'theme/app_theme.dart';
 
+// Build the app theme and show either login or the signed-in screens.
 class AlumniApp extends StatelessWidget {
   const AlumniApp({super.key});
   @override
@@ -29,6 +30,7 @@ class AlumniApp extends StatelessWidget {
               child: child!,
             );
           },
+          // Login/logout changes profile, so this listener switches the main screen automatically.
           home: Consumer<AlumniModel>(
             builder: (context, model, child) {
               return model.profile == null

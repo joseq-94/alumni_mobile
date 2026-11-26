@@ -3,6 +3,7 @@ import '../models/feed_post.dart';
 import '../models/user_profile.dart';
 import 'alumni_datasource.dart';
 
+// In-memory sample data for tests and the seed records used by the Hive demo.
 class DemoDataSource implements AlumniDataSource {
   final Map<String, UserProfile> _users = seedProfiles();
   static Map<String, UserProfile> seedProfiles() => {

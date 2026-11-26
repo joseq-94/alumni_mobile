@@ -4,6 +4,7 @@ import '../models/alumni_model.dart';
 import 'widgets/profile_header.dart';
 import 'widgets/section_card.dart';
 
+// Read-only view of the shared profile; editing takes the user to Settings.
 class ProfilePage extends StatelessWidget {
   final VoidCallback onEdit;
   const ProfilePage({super.key, required this.onEdit});

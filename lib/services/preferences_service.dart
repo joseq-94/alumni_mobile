@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 
+// Save theme and text size on this device in both API and demo modes.
 class PreferencesService {
   Box<dynamic>? _box;
   String? startupError;

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// Reusable message with an optional retry action for empty/error states.
 class StatusMessage extends StatelessWidget {
   final String message;
   final VoidCallback? onRetry;

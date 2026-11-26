@@ -8,6 +8,7 @@ import '../models/feed_post.dart';
 import '../models/user_profile.dart';
 import 'alumni_datasource.dart';
 
+// Send JSON requests to the API and turn responses into profile/post objects.
 class ApiDataSource implements AlumniDataSource {
   ApiDataSource(
     String baseUrl, {
@@ -19,7 +20,9 @@ class ApiDataSource implements AlumniDataSource {
   final String _baseUrl;
   final http.Client _client;
   final bool _allowInsecureLocalHttp;
+  // Keep the token in memory only; app restarts require another login.
   String? _token;
+  // Prevent a slow login response from restoring a session after logout.
   int _sessionVersion = 0;
 
   String _requireToken() {
@@ -62,6 +65,7 @@ class ApiDataSource implements AlumniDataSource {
     };
   }
 
+  // One shared request method handles JSON, headers, timeouts and readable errors.
   Future<T> _request<T>(
     String method,
     String path,
@@ -84,6 +88,7 @@ class ApiDataSource implements AlumniDataSource {
           .then(http.Response.fromStream)
           .timeout(const Duration(seconds: 10));
       switch (response.statusCode) {
+        // A failed login is different from an expired token on a signed-in request.
         case 401:
           if (bearer == null) {
             throw DataSourceException('Check your email and password.');
@@ -170,6 +175,7 @@ class ApiDataSource implements AlumniDataSource {
   @override
   Future<void> signOut() async {
     ++_sessionVersion;
+    // Forget the token locally first, then ask the server to revoke it.
     final previous = _token;
     _token = null;
     if (previous == null) return;

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/alumni_model.dart';
 import 'widgets/section_card.dart';
 
+// Show the signed-in name and shortcuts to tabs; no separate home API is needed.
 class HomePage extends StatelessWidget {
   final ValueChanged<int> onSelected;
   const HomePage({super.key, required this.onSelected});

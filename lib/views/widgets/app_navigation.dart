@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// Use the same destinations for a narrow bottom bar and a wide-screen side rail.
 class AppNavigation extends StatelessWidget {
   final bool wide;
   final int selectedIndex;

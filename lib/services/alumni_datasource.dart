@@ -3,6 +3,7 @@ import '../models/feed_post.dart';
 import '../models/user_profile.dart';
 
 // Swap implementations in main.dart without changing screens.
+// The common set of operations that API, Hive and in-memory sources must provide.
 abstract class AlumniDataSource {
   Future<UserProfile> signIn(String email, String password);
   Future<void> signOut();

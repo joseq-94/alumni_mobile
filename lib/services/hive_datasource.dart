@@ -7,6 +7,7 @@ import 'demo_datasource.dart';
 
 // Hive is initialised at startup by PreferencesService.
 // Plain maps keep storage simple and avoid generated adapters.
+// Optional local demo with saved fictional records; this is not an API feed cache.
 class HiveDataSource implements AlumniDataSource {
   final Box<dynamic> _profiles;
   final Box<dynamic> _posts;
@@ -18,6 +19,7 @@ class HiveDataSource implements AlumniDataSource {
     final profiles = await Hive.openBox('alumni_profiles');
     final posts = await Hive.openBox('alumni_posts');
     final source = HiveDataSource._(profiles, posts);
+    // Seed missing records only, preserving profile edits from earlier demo sessions.
     for (final user in DemoDataSource.seedProfiles().values) {
       if (!profiles.containsKey(user.email)) {
         await profiles.put(user.email, source._profileMap(user));

@@ -8,10 +8,12 @@ import 'services/api_datasource.dart';
 import 'services/hive_datasource.dart';
 import 'services/preferences_service.dart';
 
+// Start storage first, choose the data source, then share the models with all screens.
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final preferences = PreferencesService();
   await preferences.initialise();
+  // Build-time flags come from VS Code or --dart-define; restart to apply changes.
   const useApi = bool.fromEnvironment('ALUMNI_USE_API', defaultValue: true);
   final dataSource = useApi
       ? ApiDataSource(
@@ -19,6 +21,7 @@ Future<void> main() async {
             'ALUMNI_API_BASE_URL',
             defaultValue: 'http://127.0.0.1:8000/api/mobile',
           ),
+          // Only a debug build with explicit permission may use a local HTTP server.
           allowInsecureLocalHttp:
               kDebugMode &&
               const bool.fromEnvironment('ALUMNI_ALLOW_LOCAL_HTTP'),

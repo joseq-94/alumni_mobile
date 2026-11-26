@@ -5,6 +5,7 @@ import '../../models/user_profile.dart';
 import 'section_card.dart';
 import 'status_message.dart';
 
+// Keep edits in text controllers until Save; Cancel restores the shared saved profile.
 class ProfileForm extends StatefulWidget {
   const ProfileForm({super.key});
   @override
@@ -29,6 +30,7 @@ class _ProfileFormState extends State<ProfileForm> {
   }
 
   Future<void> _save() async {
+    // Check input locally first; Laravel validates it again before saving.
     if (!_formKey.currentState!.validate()) return;
     FocusScope.of(context).unfocus();
     final model = Provider.of<AlumniModel>(context, listen: false);

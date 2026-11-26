@@ -1,3 +1,4 @@
+// One post. fromMap converts JSON/storage fields into values the screens can use.
 class FeedPost {
   final int id;
   final String title;
