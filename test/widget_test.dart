@@ -5,6 +5,7 @@ import 'package:alumni_mobile/app.dart';
 import 'package:alumni_mobile/models/alumni_model.dart';
 import 'package:alumni_mobile/models/settings_model.dart';
 import 'package:alumni_mobile/services/demo_datasource.dart';
+import 'package:alumni_mobile/services/api_datasource.dart';
 import 'package:alumni_mobile/services/preferences_service.dart';
 
 class MemoryPreferences extends PreferencesService {
@@ -41,6 +42,35 @@ Future<void> startApp(WidgetTester tester) async {
 }
 
 void main() {
+  testWidgets('platform sign in starts blank and requires an email', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MultiProvider(
+        providers: [
+          ChangeNotifierProvider(
+            create: (_) =>
+                AlumniModel(ApiDataSource('https://example.com/api/mobile')),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => SettingsModel(MemoryPreferences()),
+          ),
+        ],
+        child: const AlumniApp(),
+      ),
+    );
+    final fields = tester
+        .widgetList<TextFormField>(find.byType(TextFormField))
+        .toList();
+    expect(fields[0].controller!.text, isEmpty);
+    expect(fields[1].controller!.text, isEmpty);
+    expect(find.textContaining('Prototype demo accounts'), findsNothing);
+    await tester.enterText(find.byType(TextFormField).first, 'admin');
+    await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
+    await tester.pump();
+    expect(find.text('Enter a valid email address.'), findsOneWidget);
+  });
+
   testWidgets('sign in, view post, save/cancel profile and sign out', (
     tester,
   ) async {

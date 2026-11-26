@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'widgets/profile_form.dart';
 import 'widgets/app_settings_card.dart';
 
+// Combine profile editing and device preferences while keeping unsaved form text.
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
   @override

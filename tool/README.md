@@ -7,7 +7,7 @@ flutter pub get
 dart run tool/assessment_server.dart
 ```
 
-The server listens at `http://127.0.0.1:8080/api/mobile` by default. It seeds the two fictional accounts shown on the login screen, 30 public posts and one private post. Profile edits persist in `tool/runtime/assessment.json`. Stop the server before deleting that file to reset the seed data. Each server process has its own in-memory sessions, which expire after 30 minutes.
+The server listens at `http://127.0.0.1:8080/api/mobile` by default. It seeds two fictional accounts, 30 public posts and one private post. In the app, sign in with sam@example.com and Password1. These accounts belong to this demo server, not Laravel. Profile edits persist in `tool/runtime/assessment.json`. Stop the server before deleting that file to reset the seed data. Each server process has its own in-memory sessions, which expire after 30 minutes.
 
 ## Android
 
@@ -22,7 +22,7 @@ flutter run -d emulator-5554 \
 
 Use the device ID from `flutter devices`. For a physical phone, connect it to the same network as the laptop. Set `ASSESSMENT_API_HOST` to the laptop's LAN IPv4 address before starting the server, and use that address in `ALUMNI_API_BASE_URL` in place of `10.0.2.2`. The host and port must be reachable from the phone. Use fictional data on a trusted development network.
 
-For Hive mode, run `flutter run` without the API defines. HTTP in API mode requires a debug build, the explicit HTTP flag and a localhost or private IPv4 address. For an HTTPS endpoint that implements this contract, set the API mode and URL without the HTTP flag.
+For Hive mode, run `flutter run --dart-define=ALUMNI_USE_API=false`. HTTP in API mode requires a debug build, the explicit HTTP flag and a localhost or private IPv4 address. For an HTTPS endpoint that implements this contract, set the API mode and URL without the HTTP flag.
 
 ## Web
 

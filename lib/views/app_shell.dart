@@ -5,6 +5,7 @@ import 'profile_page.dart';
 import 'settings_page.dart';
 import 'widgets/app_navigation.dart';
 
+// The signed-in layout: four pages with bottom navigation or a side rail.
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
   @override
@@ -28,6 +29,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Use available width, so this also adapts when a phone rotates.
     final wide = MediaQuery.sizeOf(context).width >= 600;
     return Scaffold(
       appBar: AppBar(

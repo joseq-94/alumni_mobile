@@ -8,6 +8,7 @@ import '../models/feed_post.dart';
 import '../models/user_profile.dart';
 import 'alumni_datasource.dart';
 
+// Send JSON requests to the API and turn responses into profile/post objects.
 class ApiDataSource implements AlumniDataSource {
   ApiDataSource(
     String baseUrl, {
@@ -19,7 +20,9 @@ class ApiDataSource implements AlumniDataSource {
   final String _baseUrl;
   final http.Client _client;
   final bool _allowInsecureLocalHttp;
+  // Keep the token in memory only; app restarts require another login.
   String? _token;
+  // Prevent a slow login response from restoring a session after logout.
   int _sessionVersion = 0;
 
   String _requireToken() {
@@ -62,6 +65,7 @@ class ApiDataSource implements AlumniDataSource {
     };
   }
 
+  // One shared request method handles JSON, headers, timeouts and readable errors.
   Future<T> _request<T>(
     String method,
     String path,
@@ -84,9 +88,10 @@ class ApiDataSource implements AlumniDataSource {
           .then(http.Response.fromStream)
           .timeout(const Duration(seconds: 10));
       switch (response.statusCode) {
+        // A failed login is different from an expired token on a signed-in request.
         case 401:
           if (bearer == null) {
-            throw DataSourceException('Check your username and password.');
+            throw DataSourceException('Check your email and password.');
           }
           if (_token == bearer) _token = null;
           throw DataSourceException(
@@ -94,12 +99,18 @@ class ApiDataSource implements AlumniDataSource {
             sessionExpired: true,
           );
         case 403:
-          throw DataSourceException('You do not have access to this item.');
+          throw DataSourceException(
+            bearer == null
+                ? 'Verify your email on the website before signing in.'
+                : 'You do not have access. Check your email verification on the website.',
+          );
         case 404:
           throw DataSourceException('This item is no longer available.');
         case 422:
+          throw DataSourceException(_validationMessage(response));
+        case 429:
           throw DataSourceException(
-            'Check the submitted information and try again.',
+            'Too many attempts. Wait a minute and try again.',
           );
         case < 200 || >= 300:
           throw DataSourceException(
@@ -121,6 +132,25 @@ class ApiDataSource implements AlumniDataSource {
     } on TypeError {
       throw DataSourceException('The server returned an unreadable response.');
     }
+  }
+
+  static String _validationMessage(http.Response response) {
+    // Laravel returns field errors as lists under 'errors'.
+    try {
+      final payload = jsonDecode(utf8.decode(response.bodyBytes));
+      if (payload is Map && payload['errors'] is Map) {
+        for (final messages in (payload['errors'] as Map).values) {
+          if (messages is List &&
+              messages.isNotEmpty &&
+              messages.first is String) {
+            return messages.first as String;
+          }
+        }
+      }
+    } on FormatException {
+      // Use a readable fallback if the response is not JSON.
+    }
+    return 'Check the submitted information and try again.';
   }
 
   static UserProfile _profile(Map<String, dynamic> response) =>
@@ -145,6 +175,7 @@ class ApiDataSource implements AlumniDataSource {
   @override
   Future<void> signOut() async {
     ++_sessionVersion;
+    // Forget the token locally first, then ask the server to revoke it.
     final previous = _token;
     _token = null;
     if (previous == null) return;

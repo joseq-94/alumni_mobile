@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+// Keep light/dark colours and shared styles here so screens look consistent.
 class AppTheme {
   // Shared brand colours from both Alumni repositories' _variables.scss.
   static const red = Color(0xFFD9272E);

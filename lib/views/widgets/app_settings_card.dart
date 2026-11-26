@@ -5,6 +5,7 @@ import '../../models/settings_model.dart';
 import 'section_card.dart';
 import 'status_message.dart';
 
+// Save device preferences through SettingsModel; logout uses AlumniModel.
 class AppSettingsCard extends StatelessWidget {
   const AppSettingsCard({super.key});
   @override

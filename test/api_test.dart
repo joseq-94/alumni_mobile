@@ -22,6 +22,42 @@ http.Response jsonResponse(Object body, [int status = 200]) => http.Response(
 );
 
 void main() {
+  test(
+    'Laravel verification, validation and rate limits have useful messages',
+    () async {
+      for (final (status, body, message) in [
+        (403, <String, dynamic>{}, 'Verify your email'),
+        (
+          422,
+          <String, dynamic>{
+            'errors': {
+              'login': ['The login field must be a valid email address.'],
+            },
+          },
+          'valid email',
+        ),
+        (422, <String, dynamic>{}, 'Check the submitted information'),
+        (429, <String, dynamic>{}, 'Wait a minute'),
+      ]) {
+        final source = ApiDataSource(
+          'https://example.com/api/mobile',
+          client: MockClient((_) async => jsonResponse(body, status)),
+        );
+        addTearDown(source.dispose);
+        await expectLater(
+          source.signIn('user@example.com', 'password'),
+          throwsA(
+            isA<DataSourceException>().having(
+              (e) => e.message,
+              'message',
+              contains(message),
+            ),
+          ),
+        );
+      }
+    },
+  );
+
   test('sign in sends POST and uses the returned profile', () async {
     final source = ApiDataSource(
       'https://example.com/api/mobile/',
@@ -30,7 +66,7 @@ void main() {
         expect(request.url.path, '/api/mobile/login');
         expect(request.headers['Authorization'], isNull);
         expect(jsonDecode(request.body), {
-          'login': 'Alex',
+          'login': 'alex@example.com',
           'password': ' Password ',
         });
         return jsonResponse({'token': 'fictional-token', 'data': profile});
@@ -38,7 +74,7 @@ void main() {
     );
     addTearDown(source.dispose);
 
-    final signedIn = await source.signIn(' Alex ', ' Password ');
+    final signedIn = await source.signIn(' alex@example.com ', ' Password ');
     expect(signedIn.id, 1);
     expect(signedIn.bio, 'Résumé');
   });

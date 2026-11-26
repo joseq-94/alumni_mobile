@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/feed_post.dart';
 
+// Show a post preview and let the parent decide what happens when it is opened.
 class FeedCard extends StatelessWidget {
   final FeedPost post;
   final VoidCallback onOpen;

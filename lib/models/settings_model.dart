@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/preferences_service.dart';
 
+// Shared device preferences, separate from the user profile stored by Laravel.
 class SettingsModel extends ChangeNotifier {
   final PreferencesService preferences;
   late String theme;
@@ -25,6 +26,7 @@ class SettingsModel extends ChangeNotifier {
     error = null;
     notifyListeners();
     try {
+      // Only show the new preference as saved after local storage succeeds.
       await preferences.save(newTheme, newLargerText);
       if (_disposed) return;
       theme = newTheme;

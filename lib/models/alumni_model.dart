@@ -4,6 +4,7 @@ import '../services/alumni_datasource.dart';
 import 'feed_post.dart';
 import 'user_profile.dart';
 
+// Shared account and feed state. notifyListeners() tells listening screens to rebuild.
 class AlumniModel extends ChangeNotifier {
   final AlumniDataSource dataSource;
   AlumniModel(this.dataSource);
@@ -17,6 +18,7 @@ class AlumniModel extends ChangeNotifier {
   String? feedError;
   String? profileError;
   int? nextPage;
+  // Ignore old requests after logout or another login, even if they finish later.
   int _session = 0;
   bool _disposed = false;
   bool _isCurrent(int session) => !_disposed && session == _session;
@@ -33,6 +35,7 @@ class AlumniModel extends ChangeNotifier {
     final session = ++_session;
     signingIn = true;
     signInError = null;
+    // Show the busy state immediately, before waiting for the server.
     notifyListeners();
     try {
       final user = await dataSource.signIn(email, password);
@@ -77,6 +80,7 @@ class AlumniModel extends ChangeNotifier {
     try {
       final result = await dataSource.readFeed(page);
       if (!_isCurrent(session)) return;
+      // Refresh replaces the feed; later pages append posts without duplicate IDs.
       if (page == 1) _posts.clear();
       for (final post in result.posts) {
         if (!_posts.any((item) => item.id == post.id)) _posts.add(post);
@@ -101,6 +105,7 @@ class AlumniModel extends ChangeNotifier {
     try {
       final updated = await dataSource.updateProfile(name.trim(), bio);
       if (!_isCurrent(session)) return false;
+      // Use the returned saved record so every profile display shows the same result.
       profile = updated;
       saved = true;
     } catch (error) {

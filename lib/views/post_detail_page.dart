@@ -5,6 +5,7 @@ import '../models/feed_post.dart';
 import '../services/alumni_datasource.dart';
 import 'widgets/status_message.dart';
 
+// Load a single post by ID, keeping its loading/error state only on this screen.
 class PostDetailPage extends StatefulWidget {
   final int postId;
   const PostDetailPage({super.key, required this.postId});
@@ -30,6 +31,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
     final model = Provider.of<AlumniModel>(context, listen: false);
     try {
       final post = await model.dataSource.readPost(widget.postId);
+      // The user may have left this screen while the request was running.
       if (!mounted) return;
       setState(() => _post = post);
     } catch (error) {

@@ -5,6 +5,7 @@ import 'post_detail_page.dart';
 import 'widgets/feed_card.dart';
 import 'widgets/status_message.dart';
 
+// Display shared feed state; refresh and load-more actions are handled by AlumniModel.
 class FeedPageView extends StatelessWidget {
   const FeedPageView({super.key});
   @override
@@ -17,6 +18,7 @@ class FeedPageView extends StatelessWidget {
             key: const PageStorageKey('feed'),
             padding: const EdgeInsets.all(20),
             physics: const AlwaysScrollableScrollPhysics(),
+            // The extra two rows are the heading/status area and the loading/load-more footer.
             itemCount: model.posts.length + 2,
             itemBuilder: (context, index) {
               if (index == 0) {
