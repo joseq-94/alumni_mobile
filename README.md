@@ -24,7 +24,16 @@ flutter run -d DEVICE_ID --dart-define=ALUMNI_ALLOW_LOCAL_HTTP=true
 
 API mode is the default, using `http://127.0.0.1:8000/api/mobile`. Forwarding makes that address reach the computer from the device. Local HTTP requires the flag above and a debug build. For another server, set `--dart-define=ALUMNI_API_BASE_URL=https://your-server/api/mobile`.
 
-The app uses the six Laravel login, logout, profile and feed endpoints. Login tokens stay in memory; sign in again after restarting the app or after the 30-minute token expiry. The server validates changes to name and bio. API data requires a connection; Hive does not act as an offline feed cache.
+The app uses the six Laravel login, logout, profile and feed endpoints. Login tokens stay in memory; sign in again after restarting the app or after the 30-minute token expiry. The server validates changes to name and bio. Without a connection, the app shows the content it saved earlier; see Offline mode.
+
+## Offline mode
+
+In API mode the app saves a copy of the signed-in profile, the feed pages already loaded and the posts already opened, in a Hive box on the device (`alumni_offline_cache`). If the connection drops, these saved copies are shown with the banner "You're offline. Showing saved content." Refresh when the connection returns to load current data.
+
+- Profile changes need a connection. Offline, Save shows "You're offline. Connect to save changes." and keeps the draft.
+- Signing in or restoring a saved session still needs the server, so open the app online at least once.
+- Logout, a rejected session or a different account deletes the saved copies.
+- To turn the cache off, run with `--dart-define=ALUMNI_OFFLINE_CACHE=false`.
 
 ## Local demo options
 
