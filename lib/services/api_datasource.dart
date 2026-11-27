@@ -45,6 +45,36 @@ class ApiDataSource implements AlumniDataSource {
     });
   }
 
+  Future<UserProfile?> restoreSession() async {
+    final version = ++_sessionVersion;
+    try {
+      await _storageWrites;
+      final savedToken = await _storage?.read(key: _tokenKey);
+      if (savedToken == null || version != _sessionVersion) return null;
+
+      final profile = await _request(
+        'GET',
+        '/me',
+        _profile,
+        bearer: savedToken,
+      );
+      if (version != _sessionVersion) return null;
+      _token = savedToken;
+      return profile;
+    } on DataSourceException catch (error) {
+      if (version != _sessionVersion) return null;
+      if (!error.sessionExpired) rethrow;
+
+      await _saveToken(null);
+      return null;
+    } on PlatformException {
+      if (version != _sessionVersion) return null;
+      throw DataSourceException(
+        'Unable to read the saved session. Please try again.',
+      );
+    }
+  }
+
   String _requireToken() {
     return _token ??
         (throw DataSourceException(
@@ -93,6 +123,7 @@ class ApiDataSource implements AlumniDataSource {
     Map<String, Object?>? body,
     String? bearer,
   }) async {
+    final version = _sessionVersion;
     final request = http.Request(method, _endpoint(path))
       ..followRedirects = false
       ..headers['Accept'] = 'application/json';
@@ -113,7 +144,7 @@ class ApiDataSource implements AlumniDataSource {
           if (bearer == null) {
             throw DataSourceException('Check your email and password.');
           }
-          if (_token == bearer) {
+          if (version == _sessionVersion && _token == bearer) {
             _token = null;
             await _saveToken(null);
           }
