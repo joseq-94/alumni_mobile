@@ -16,6 +16,9 @@ Future<void> main() async {
   await preferences.initialise();
   // Build-time flags come from VS Code or --dart-define; restart to apply changes.
   const useApi = bool.fromEnvironment('ALUMNI_USE_API', defaultValue: true);
+  final storage = !kIsWeb && defaultTargetPlatform == TargetPlatform.android
+      ? const FlutterSecureStorage()
+      : null;
   final dataSource = useApi
       ? ApiDataSource(
           const String.fromEnvironment(
@@ -26,15 +29,20 @@ Future<void> main() async {
           allowInsecureLocalHttp:
               kDebugMode &&
               const bool.fromEnvironment('ALUMNI_ALLOW_LOCAL_HTTP'),
-          storage: !kIsWeb && defaultTargetPlatform == TargetPlatform.android
-              ? const FlutterSecureStorage()
-              : null,
+          storage: storage,
         )
       : await HiveDataSource.createAsync();
   runApp(
     MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => AlumniModel(dataSource)),
+        ChangeNotifierProvider(
+          create: (_) => AlumniModel(
+            dataSource,
+            restoreSavedSession: storage != null && dataSource is ApiDataSource
+                ? dataSource.restoreSession
+                : null,
+          )..restoreSession(),
+        ),
         ChangeNotifierProvider(create: (_) => SettingsModel(preferences)),
       ],
       child: const AlumniApp(),
