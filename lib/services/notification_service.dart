@@ -26,8 +26,7 @@ class NotificationService {
         sound: true,
       );
 
-      if (permission.authorizationStatus !=
-          AuthorizationStatus.authorized) {
+      if (permission.authorizationStatus != AuthorizationStatus.authorized) {
         debugPrint('Notifications are not allowed.');
         return;
       }
@@ -42,9 +41,7 @@ class NotificationService {
       // Foreground messages are logged for this first test.
       FirebaseMessaging.onMessage.listen((message) {
         if (kDebugMode) {
-          debugPrint(
-            'Notification received: ${message.notification?.title}',
-          );
+          debugPrint('Notification received: ${message.notification?.title}');
         }
       });
 
