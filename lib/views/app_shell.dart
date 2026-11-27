@@ -7,14 +7,40 @@ import 'widgets/app_navigation.dart';
 
 // The signed-in layout: four pages with bottom navigation or a side rail.
 class AppShell extends StatefulWidget {
-  const AppShell({super.key});
+  final int feedRequest;
+
+  const AppShell({super.key, this.feedRequest = 0});
   @override
   State<AppShell> createState() => _AppShellState();
 }
 
 class _AppShellState extends State<AppShell> {
-  final _controller = PageController();
-  int _index = 0;
+  late final PageController _controller;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // A newly opened shell can start directly on the feed.
+    _index = widget.feedRequest > 0 ? 1 : 0;
+    _controller = PageController(initialPage: _index);
+  }
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // A new request also works when the user is already inside the app.
+    if (widget.feedRequest != oldWidget.feedRequest && widget.feedRequest > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _controller.hasClients) {
+          _select(1);
+        }
+      });
+    }
+  }
+
   void _select(int index) {
     FocusScope.of(context).unfocus();
     _controller.jumpToPage(index);

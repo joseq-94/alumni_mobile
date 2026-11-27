@@ -5,12 +5,27 @@ import 'package:flutter/foundation.dart';
 import '../firebase_options.dart';
 
 class NotificationService {
+  // The app listens to these values to display messages and open the feed.
+  static final feedRequested = ValueNotifier<bool>(false);
+  static final foregroundMessages = ValueNotifier<int>(0);
+
+  static bool _started = false;
+
+  static void requestFeed() {
+    feedRequested.value = true;
+  }
+
+  static bool _isFeedMessage(RemoteMessage message) {
+    return message.data['type'] == 'public_feed';
+  }
+
   static Future<void> initialise() async {
-    // This first version supports Android only.
-    // Chrome and other platforms continue without notifications.
-    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+    if (_started || kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       return;
     }
+
+    // These listeners are created once for the lifetime of the app.
+    _started = true;
 
     try {
       await Firebase.initializeApp(
@@ -19,7 +34,27 @@ class NotificationService {
 
       final messaging = FirebaseMessaging.instance;
 
-      // Android may ask the user to allow notifications.
+      // A notification arrives while the app is visible.
+      FirebaseMessaging.onMessage.listen((message) {
+        if (_isFeedMessage(message)) {
+          foregroundMessages.value++;
+        }
+      });
+
+      // The user taps a notification while the app is in the background.
+      FirebaseMessaging.onMessageOpenedApp.listen((message) {
+        if (_isFeedMessage(message)) {
+          requestFeed();
+        }
+      });
+
+      // The user taps a notification that starts a closed app.
+      final initialMessage = await messaging.getInitialMessage();
+
+      if (initialMessage != null && _isFeedMessage(initialMessage)) {
+        requestFeed();
+      }
+
       final permission = await messaging.requestPermission(
         alert: true,
         badge: true,
@@ -31,30 +66,14 @@ class NotificationService {
         return;
       }
 
-      // Subscribe before registering so we receive the device identifier.
-      messaging.onRegistered.listen((installationId) {
-        if (kDebugMode) {
-          debugPrint('Firebase installation ID: $installationId');
-        }
-      });
-
-      // Foreground messages are logged for this first test.
-      FirebaseMessaging.onMessage.listen((message) {
-        if (kDebugMode) {
-          debugPrint('Notification received: ${message.notification?.title}');
-        }
-      });
-
       await messaging.register();
-      
-      // Receive announcements sent to all public-feed subscribers.
       await messaging.subscribeToTopic('public_feed');
 
       if (kDebugMode) {
         debugPrint('Subscribed to public_feed notifications.');
       }
     } catch (error) {
-      // Notification setup must not prevent the app from opening.
+      // Notification problems must not prevent the rest of the app working.
       debugPrint('Notification setup failed: $error');
     }
   }
