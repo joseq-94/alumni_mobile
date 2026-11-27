@@ -46,6 +46,13 @@ class NotificationService {
       });
 
       await messaging.register();
+      
+      // Receive announcements sent to all public-feed subscribers.
+      await messaging.subscribeToTopic('public_feed');
+
+      if (kDebugMode) {
+        debugPrint('Subscribed to public_feed notifications.');
+      }
     } catch (error) {
       // Notification setup must not prevent the app from opening.
       debugPrint('Notification setup failed: $error');
