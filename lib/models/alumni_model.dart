@@ -7,13 +7,16 @@ import 'user_profile.dart';
 // Shared account and feed state. notifyListeners() tells listening screens to rebuild.
 class AlumniModel extends ChangeNotifier {
   final AlumniDataSource dataSource;
-  AlumniModel(this.dataSource);
+  final Future<UserProfile?> Function()? _restoreSavedSession;
+  AlumniModel(this.dataSource, {this._restoreSavedSession});
   UserProfile? profile;
   final List<FeedPost> _posts = [];
   UnmodifiableListView<FeedPost> get posts => UnmodifiableListView(_posts);
+  bool restoringSession = false;
   bool signingIn = false;
   bool loadingFeed = false;
   bool savingProfile = false;
+  String? sessionRestoreError;
   String? signInError;
   String? feedError;
   String? profileError;
@@ -30,10 +33,36 @@ class AlumniModel extends ChangeNotifier {
     return 'Unable to connect. Please try again.';
   }
 
+  Future<void> restoreSession() async {
+    final restore = _restoreSavedSession;
+    if (restore == null || restoringSession || signingIn || profile != null) {
+      return;
+    }
+
+    final session = ++_session;
+    restoringSession = true;
+    sessionRestoreError = null;
+    notifyListeners();
+    try {
+      final user = await restore();
+      if (!_isCurrent(session)) return;
+      profile = user;
+    } catch (error) {
+      if (!_isCurrent(session)) return;
+      sessionRestoreError = error is DataSourceException
+          ? error.message
+          : 'Unable to restore your session. Please try again.';
+    }
+    restoringSession = false;
+    notifyListeners();
+    if (profile != null) await refreshFeed();
+  }
+
   Future<void> signIn(String email, String password) async {
-    if (signingIn) return;
+    if (signingIn || restoringSession) return;
     final session = ++_session;
     signingIn = true;
+    sessionRestoreError = null;
     signInError = null;
     // Show the busy state immediately, before waiting for the server.
     notifyListeners();
@@ -56,6 +85,8 @@ class AlumniModel extends ChangeNotifier {
     profile = null;
     _posts.clear();
     nextPage = null;
+    restoringSession = false;
+    sessionRestoreError = null;
     signingIn = loadingFeed = savingProfile = false;
     signInError = feedError = profileError = null;
     if (!_disposed) notifyListeners();

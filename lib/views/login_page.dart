@@ -53,6 +53,17 @@ class _LoginPageState extends State<LoginPage> {
               constraints: const BoxConstraints(maxWidth: 440),
               child: Consumer<AlumniModel>(
                 builder: (context, model, child) {
+                  if (model.restoringSession) {
+                    return const Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        CircularProgressIndicator(),
+                        SizedBox(height: 16),
+                        Text('Checking your session...'),
+                      ],
+                    );
+                  }
+
                   return Form(
                     key: _formKey,
                     child: Column(
@@ -80,6 +91,11 @@ class _LoginPageState extends State<LoginPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              if (model.sessionRestoreError case final message?)
+                                StatusMessage(
+                                  message: message,
+                                  onRetry: model.restoreSession,
+                                ),
                               TextFormField(
                                 controller: _email,
                                 enabled: !model.signingIn,
