@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/services.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
 import '../models/feed_page.dart';
@@ -14,16 +16,34 @@ class ApiDataSource implements AlumniDataSource {
     String baseUrl, {
     http.Client? client,
     this._allowInsecureLocalHttp = false,
+    this._storage,
   }) : _baseUrl = baseUrl.trim().replaceFirst(RegExp(r'/+$'), ''),
        _client = client ?? http.Client();
 
   final String _baseUrl;
   final http.Client _client;
   final bool _allowInsecureLocalHttp;
-  // Keep the token in memory only; app restarts require another login.
+  final FlutterSecureStorage? _storage;
   String? _token;
+  Future<void> _storageWrites = Future<void>.value();
   // Prevent a slow login response from restoring a session after logout.
   int _sessionVersion = 0;
+
+  String get _tokenKey => 'alumni_token:$_baseUrl';
+
+  Future<void> _saveToken(String? token) {
+    final storage = _storage;
+    if (storage == null) return Future<void>.value();
+
+    // Keep a pending login write from overwriting a subsequent logout.
+    return _storageWrites = _storageWrites.then((_) async {
+      try {
+        await storage.write(key: _tokenKey, value: token);
+      } on PlatformException {
+        // Keep the session in memory if secure storage is unavailable.
+      }
+    });
+  }
 
   String _requireToken() {
     return _token ??
@@ -93,7 +113,10 @@ class ApiDataSource implements AlumniDataSource {
           if (bearer == null) {
             throw DataSourceException('Check your email and password.');
           }
-          if (_token == bearer) _token = null;
+          if (_token == bearer) {
+            _token = null;
+            await _saveToken(null);
+          }
           throw DataSourceException(
             'Your session has expired.',
             sessionExpired: true,
@@ -160,6 +183,7 @@ class ApiDataSource implements AlumniDataSource {
   Future<UserProfile> signIn(String email, String password) async {
     final version = ++_sessionVersion;
     _token = null;
+    await _saveToken(null);
     final signedIn = await _request('POST', '/login', (payload) {
       final token = payload['token'] as String;
       if (token.trim().isEmpty) throw const FormatException();
@@ -169,6 +193,10 @@ class ApiDataSource implements AlumniDataSource {
       throw DataSourceException('Please sign in again.', sessionExpired: true);
     }
     _token = signedIn.token;
+    await _saveToken(signedIn.token);
+    if (version != _sessionVersion) {
+      throw DataSourceException('Please sign in again.', sessionExpired: true);
+    }
     return signedIn.profile;
   }
 
@@ -178,6 +206,7 @@ class ApiDataSource implements AlumniDataSource {
     // Forget the token locally first, then ask the server to revoke it.
     final previous = _token;
     _token = null;
+    await _saveToken(null);
     if (previous == null) return;
     try {
       await _request<void>('POST', '/logout', (_) {}, bearer: previous);
