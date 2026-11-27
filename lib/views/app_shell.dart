@@ -4,6 +4,7 @@ import 'feed_page.dart';
 import 'profile_page.dart';
 import 'settings_page.dart';
 import 'widgets/app_navigation.dart';
+import 'widgets/offline_banner.dart';
 
 // The signed-in layout: four pages with bottom navigation or a side rail.
 class AppShell extends StatefulWidget {
@@ -48,23 +49,31 @@ class _AppShellState extends State<AppShell> {
         ],
       ),
       body: SafeArea(
-        child: Row(
+        child: Column(
           children: [
-            if (wide)
-              AppNavigation(
-                wide: true,
-                selectedIndex: _index,
-                onSelected: _select,
-              ),
+            // Appears only while saved data is shown without a connection.
+            const OfflineBanner(),
             Expanded(
-              child: PageView(
-                controller: _controller,
-                onPageChanged: (index) => setState(() => _index = index),
+              child: Row(
                 children: [
-                  HomePage(onSelected: _select),
-                  const FeedPageView(),
-                  ProfilePage(onEdit: () => _select(3)),
-                  const SettingsPage(),
+                  if (wide)
+                    AppNavigation(
+                      wide: true,
+                      selectedIndex: _index,
+                      onSelected: _select,
+                    ),
+                  Expanded(
+                    child: PageView(
+                      controller: _controller,
+                      onPageChanged: (index) => setState(() => _index = index),
+                      children: [
+                        HomePage(onSelected: _select),
+                        const FeedPageView(),
+                        ProfilePage(onEdit: () => _select(3)),
+                        const SettingsPage(),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
