@@ -5,8 +5,11 @@ import 'package:provider/provider.dart';
 import 'app.dart';
 import 'models/alumni_model.dart';
 import 'models/settings_model.dart';
+import 'models/user_profile.dart';
 import 'services/api_datasource.dart';
+import 'services/alumni_datasource.dart';
 import 'services/hive_datasource.dart';
+import 'services/offline_cache_datasource.dart';
 import 'services/preferences_service.dart';
 
 // Start storage first, choose the data source, then share the models with all screens.
@@ -19,7 +22,12 @@ Future<void> main() async {
   final storage = !kIsWeb && defaultTargetPlatform == TargetPlatform.android
       ? const FlutterSecureStorage()
       : null;
-  final dataSource = useApi
+  // Keep saved copies of API data for reading without a connection.
+  const useOfflineCache = bool.fromEnvironment(
+    'ALUMNI_OFFLINE_CACHE',
+    defaultValue: true,
+  );
+  final api = useApi
       ? ApiDataSource(
           const String.fromEnvironment(
             'ALUMNI_API_BASE_URL',
@@ -31,19 +39,30 @@ Future<void> main() async {
               const bool.fromEnvironment('ALUMNI_ALLOW_LOCAL_HTTP'),
           storage: storage,
         )
-      : await HiveDataSource.createAsync();
+      : null;
+  final offlineStatus = OfflineStatus();
+  final cache = api != null && useOfflineCache
+      ? await OfflineCacheDataSource.open(api, offlineStatus)
+      : null;
+  final AlumniDataSource dataSource =
+      cache ?? api ?? await HiveDataSource.createAsync();
+  // Session restore still goes to the API; the cache records the restored account.
+  final restoreApi = storage != null ? api?.restoreSession : null;
+  final Future<UserProfile?> Function()? restoreSavedSession =
+      restoreApi == null || cache == null
+      ? restoreApi
+      : () => cache.restoreSession(restoreApi);
   runApp(
     MultiProvider(
       providers: [
         ChangeNotifierProvider(
           create: (_) => AlumniModel(
             dataSource,
-            restoreSavedSession: storage != null && dataSource is ApiDataSource
-                ? dataSource.restoreSession
-                : null,
+            restoreSavedSession: restoreSavedSession,
           )..restoreSession(),
         ),
         ChangeNotifierProvider(create: (_) => SettingsModel(preferences)),
+        ChangeNotifierProvider(create: (_) => offlineStatus),
       ],
       child: const AlumniApp(),
     ),
