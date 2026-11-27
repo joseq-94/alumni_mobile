@@ -7,6 +7,8 @@ import 'models/settings_model.dart';
 import 'services/api_datasource.dart';
 import 'services/hive_datasource.dart';
 import 'services/preferences_service.dart';
+import 'dart:async';
+import 'services/notification_service.dart';
 
 // Start storage first, choose the data source, then share the models with all screens.
 Future<void> main() async {
@@ -36,4 +38,6 @@ Future<void> main() async {
       child: const AlumniApp(),
     ),
   );
+
+  unawaited(NotificationService.initialise());
 }
